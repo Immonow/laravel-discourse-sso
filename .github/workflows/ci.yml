@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        php: [7.2, 7.3, 7.4]
+        php: [7.2, 7.3, 7.4, '8.2', '8.3', '8.4', '8.5']
         stability: [prefer-lowest, prefer-stable]
 
     name: PHP ${{ matrix.php }} - ${{ matrix.stability }}
@@ -38,7 +38,7 @@ jobs:
 
       - name: PHP Security Checker
         uses: symfonycorp/security-checker-action@v2
-        if: ${{ matrix.stability == 'prefer-stable' }}
+        if: "${{ matrix.stability == 'prefer-stable' }}"
 
       - name: Execute tests
         run: vendor/bin/phpunit --coverage-clover=coverage.clover --verbose
