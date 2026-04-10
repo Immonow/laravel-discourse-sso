@@ -12,17 +12,17 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        php: [7.2, 7.3, 7.4]
+        php: ['8.2', '8.3', '8.4', '8.5']
         stability: [prefer-lowest, prefer-stable]
 
     name: PHP ${{ matrix.php }} - ${{ matrix.stability }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
 
       - name: Cache dependencies
-        uses: actions/cache@v1
+        uses: actions/cache@v5
         with:
           path: ~/.composer/cache
           key: dependencies-php-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
@@ -34,14 +34,11 @@ jobs:
           coverage: pcov
 
       - name: Install dependencies
-        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-suggest
+        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: PHP Security Checker
-        uses: symfonycorp/security-checker-action@v2
-        if: ${{ matrix.stability == 'prefer-stable' }}
+        uses: symfonycorp/security-checker-action@v5
+        if: matrix.stability == 'prefer-stable'
 
       - name: Execute tests
         run: vendor/bin/phpunit --coverage-clover=coverage.clover --verbose
-
-      - name: Upload Code Coverage
-        run: wget https://scrutinizer-ci.com/ocular.phar && php ocular.phar code-coverage:upload --format=php-clover coverage.clover
