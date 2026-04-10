@@ -53,6 +53,10 @@ class LogoutDiscourseUser implements ShouldQueue
             return;
         }
 
+        if (! $this->config_repository->get('services.discourse.enabled')) {
+            return;
+        }
+
         $configs = [
             'base_uri' => $this->config_repository->get('services.discourse.url'),
             'headers' => [
@@ -61,9 +65,11 @@ class LogoutDiscourseUser implements ShouldQueue
             ],
         ];
 
+        $external_user_id_field = $this->config_repository->get('services.discourse.user.external_id');
+
         try {
             // Get Discourse user to match this one, and send a Logout request to Discourse and get the response
-            $response = $this->client->get("users/by-external/{$event->user->id}.json", $configs);
+            $response = $this->client->get('users/by-external/' . $event->user->$external_user_id_field .'.json', $configs);
         } catch (BadResponseException $e) {
             $response = $e->getResponse();
         }
@@ -78,7 +84,7 @@ class LogoutDiscourseUser implements ShouldQueue
         }
 
         $user = json_decode($response->getBody())->user;
-        $response = $this->client->post("admin/users/{$user->id}/log_out", $configs);
+        $response = $this->client->post("admin/users/{$user->id}/log_out.json", $configs);
 
         if ($response->getStatusCode() !== 200) {
             $this->logger->notice(

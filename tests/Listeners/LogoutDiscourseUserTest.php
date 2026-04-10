@@ -123,6 +123,16 @@ class LogoutDiscourseUserTest extends TestCase
                           ->once()
                           ->andReturn($configs['headers']['Api-Username']);
 
+        $this->config_mock->shouldReceive('get')
+                            ->with('services.discourse.enabled')
+                            ->once()
+                            ->andReturn(true);
+
+        $this->config_mock->shouldReceive('get')
+                            ->with('services.discourse.user.external_id')
+                            ->once()
+                            ->andReturn('id');
+
         $this->response_mock->shouldReceive('getBody')
                  ->once()
                  ->andReturn((new Response(200, [], json_encode(['user' => $this->user_mock])))->getBody());
@@ -137,7 +147,68 @@ class LogoutDiscourseUserTest extends TestCase
                           ->andReturn($this->response_mock);
 
         $this->guzzle_mock->shouldReceive('post')
-                          ->with('admin/users/1/log_out', $configs)
+                          ->with('admin/users/1/log_out.json', $configs)
+                          ->andReturn($this->response_mock);
+
+        $this->listener->handle($this->event_mock);
+    }
+
+    /**
+     * @test
+     */
+    public function it_logs_out_the_discourse_user_with_a_non_standard_id_when_triggered()
+    {
+        $this->user_mock->external_id = "UserId1";
+        $this->event_mock->user = $this->user_mock;
+
+        $configs = [
+            'base_uri' => 'http://discourse.example.com',
+            'headers' => [
+                'Api-Key' => 'testkey',
+                'Api-Username' => 'testuser',
+            ],
+        ];
+
+        $this->config_mock->shouldReceive('get')
+                          ->with('services.discourse.url')
+                          ->once()
+                          ->andReturn($configs['base_uri']);
+
+        $this->config_mock->shouldReceive('get')
+                          ->with('services.discourse.api.key')
+                          ->once()
+                          ->andReturn($configs['headers']['Api-Key']);
+
+        $this->config_mock->shouldReceive('get')
+                          ->with('services.discourse.api.user')
+                          ->once()
+                          ->andReturn($configs['headers']['Api-Username']);
+
+        $this->config_mock->shouldReceive('get')
+                            ->with('services.discourse.enabled')
+                            ->once()
+                            ->andReturn(true);
+
+        $this->config_mock->shouldReceive('get')
+                            ->with('services.discourse.user.external_id')
+                            ->once()
+                            ->andReturn('external_id');
+
+        $this->response_mock->shouldReceive('getBody')
+                 ->once()
+                 ->andReturn((new Response(200, [], json_encode(['user' => ['id' => 1]])))->getBody());
+
+        $this->response_mock->shouldReceive('getStatusCode')
+                 ->twice()
+                 ->andReturn(200);
+
+        $this->guzzle_mock->shouldReceive('get')
+                          ->with('users/by-external/UserId1.json', $configs)
+                          ->once()
+                          ->andReturn($this->response_mock);
+
+        $this->guzzle_mock->shouldReceive('post')
+                          ->with('admin/users/1/log_out.json', $configs)
                           ->andReturn($this->response_mock);
 
         $this->listener->handle($this->event_mock);
@@ -150,6 +221,27 @@ class LogoutDiscourseUserTest extends TestCase
     {
         $this->response_mock->shouldNotReceive('getBody');
         $this->config_mock->shouldNotReceive('get');
+        $this->guzzle_mock->shouldNotReceive('get');
+        $this->guzzle_mock->shouldNotReceive('post');
+
+        $this->listener->handle($this->event_mock);
+    }
+
+    /**
+     * @test
+     */
+    public function if_it_is_disabled_it_does_nothing_and_returns()
+    {
+        $this->user_mock->id = 1;
+        $this->event_mock->user = $this->user_mock;
+
+        $this->response_mock->shouldNotReceive('getBody');
+
+        $this->config_mock->shouldReceive('get')
+                            ->with('services.discourse.enabled')
+                            ->once()
+                            ->andReturn(false);
+
         $this->guzzle_mock->shouldNotReceive('get');
         $this->guzzle_mock->shouldNotReceive('post');
 
@@ -189,6 +281,16 @@ class LogoutDiscourseUserTest extends TestCase
                           ->with('services.discourse.api.user')
                           ->once()
                           ->andReturn($configs['headers']['Api-Username']);
+
+        $this->config_mock->shouldReceive('get')
+                            ->with('services.discourse.enabled')
+                            ->once()
+                            ->andReturn(true);
+
+        $this->config_mock->shouldReceive('get')
+                            ->with('services.discourse.user.external_id')
+                            ->once()
+                            ->andReturn('id');
 
         $exception_mock->shouldReceive('getResponse')
                        ->once()
@@ -243,6 +345,16 @@ class LogoutDiscourseUserTest extends TestCase
                           ->once()
                           ->andReturn($configs['headers']['Api-Username']);
 
+        $this->config_mock->shouldReceive('get')
+                            ->with('services.discourse.enabled')
+                            ->once()
+                            ->andReturn(true);
+
+        $this->config_mock->shouldReceive('get')
+                            ->with('services.discourse.user.external_id')
+                            ->once()
+                            ->andReturn('id');
+
         $this->response_mock->shouldReceive('getStatusCode')
                             ->andReturn(500);
 
@@ -266,7 +378,7 @@ class LogoutDiscourseUserTest extends TestCase
                           ->andReturn($good_response);
 
         $this->guzzle_mock->shouldReceive('post')
-                          ->with('admin/users/1/log_out', $configs)
+                          ->with('admin/users/1/log_out.json', $configs)
                           ->andReturn($this->response_mock);
 
         $this->listener->handle($this->event_mock);
